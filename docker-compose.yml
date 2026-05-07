@@ -1,6 +1,7 @@
 services:
   task-map:
     build: .
+    container_name: task-map
     restart: unless-stopped
     env_file: .env
     ports:
