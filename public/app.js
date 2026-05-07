@@ -24,7 +24,6 @@
     dragging: false,
     dragStart: null,
     didDrag: false,
-    nextId: 1000,
     searchMatches: new Set(),
     linking: false,
     linkSource: null,
@@ -133,8 +132,6 @@
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
-  function newId() { return 'n' + (state.nextId++); }
-
   function countDescendants(n) {
     if (!n.children || n.children.length === 0) return 0;
     return n.children.reduce((s, c) => s + 1 + countDescendants(c), 0);
@@ -577,7 +574,8 @@
     if (exists) { showToast('These nodes are already linked'); return; }
     links.push({ source_id, target_id });
     api('POST', '/api/links', { source_id, target_id })
-      .then(created => { links[links.length - 1].id = created.id; });
+      .then(created => { links[links.length - 1].id = created.id; })
+      .catch(() => { links.splice(links.length - 1, 1); render(); });
     showToast(`Linked "${findNode(fromId).label}" to "${findNode(toId).label}"`);
     if (state.selected) {
       const sel = findNode(state.selected);
@@ -1383,9 +1381,12 @@
       const parent = findParent(nodeId);
       if (!parent) return;
       const toRemove = new Set([nodeId]);
-      (function walk(n) {
-        if (n.children) n.children.forEach(c => { toRemove.add(c.id); walk(c); });
-      })(findNode(nodeId));
+      const nodeToRemove = findNode(nodeId);
+      if (nodeToRemove) {
+        (function walk(n) {
+          if (n.children) n.children.forEach(c => { toRemove.add(c.id); walk(c); });
+        })(nodeToRemove);
+      }
       parent.children = parent.children.filter(c => c.id !== nodeId);
       for (let i = links.length - 1; i >= 0; i--) {
         if (toRemove.has(links[i].source_id) || toRemove.has(links[i].target_id)) links.splice(i, 1);
@@ -1546,6 +1547,6 @@
     render();
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  init();
   window.addEventListener('resize', () => { if (data) render(); });
 })();
