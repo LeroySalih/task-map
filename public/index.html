@@ -1,1 +1,61 @@
-<html><body>shell</body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Mindmap</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="app">
+  <div class="toolbar">
+    <button class="primary" onclick="expandAll()">Expand all</button>
+    <button onclick="collapseAll()">Collapse</button>
+    <button onclick="resetView()">Reset view</button>
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" id="search-input" type="text" placeholder="Search nodes…" autocomplete="off">
+      <div class="search-results" id="search-results"></div>
+    </div>
+    <form method="POST" action="/logout" style="margin-left:auto">
+      <button type="submit" style="background:#f0ede5;border:none;padding:9px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:#2a2a28">Sign out</button>
+    </form>
+  </div>
+
+  <div class="breadcrumbs" id="breadcrumbs"></div>
+
+  <div class="zoom">
+    <button onclick="zoomIn()" title="Zoom in">+</button>
+    <div class="zoom-level" id="zoom-level">100%</div>
+    <button onclick="zoomOut()" title="Zoom out">−</button>
+  </div>
+
+  <div class="title">Project Mindmap</div>
+
+  <div class="legend">
+    <div class="legend-row"><div class="legend-dot" style="background:#c96342"></div>Active</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#d4a84b"></div>On hold</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#5a8a5a"></div>Completed</div>
+    <div class="legend-row"><div class="legend-dot" style="background:#7a9eb8"></div>Idea</div>
+  </div>
+
+  <div class="canvas-wrap" id="canvas-wrap">
+    <svg id="canvas" width="100%" height="100%"></svg>
+  </div>
+
+  <div class="hint" id="hint">Hover a node for + (add), × (remove), ↗ (link). The 📁 icon shows when a node has folder paths attached.</div>
+
+  <div class="sidebar" id="sidebar">
+    <button class="sidebar-close" onclick="closeSidebar()">×</button>
+    <div id="sidebar-content"></div>
+  </div>
+
+  <div class="modal-backdrop" id="modal-backdrop">
+    <div class="modal" id="modal-content"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
