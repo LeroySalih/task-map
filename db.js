@@ -55,6 +55,11 @@ function initDb(dbPath = path.join(__dirname, 'data', 'taskmap.db')) {
     );
   `);
 
+  const hasColorCol = db.prepare("SELECT COUNT(*) as c FROM pragma_table_info('nodes') WHERE name='color'").get().c;
+  if (!hasColorCol) {
+    db.prepare('ALTER TABLE nodes ADD COLUMN color TEXT').run();
+  }
+
   const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
   if (userCount === 0) {
     const email = process.env.ADMIN_EMAIL;

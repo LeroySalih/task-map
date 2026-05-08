@@ -39,4 +39,9 @@ describe('initDb', () => {
     expect(root.type).toBe('root');
     expect(root.label).toBe('My projects');
   });
+
+  test('nodes table has color column', () => {
+    const cols = db.prepare("SELECT name FROM pragma_table_info('nodes')").all().map(r => r.name);
+    expect(cols).toContain('color');
+  });
 });

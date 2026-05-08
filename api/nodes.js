@@ -53,7 +53,7 @@ module.exports = function nodesRouter(db) {
   });
 
   router.patch('/nodes/:id', (req, res) => {
-    const allowed = ['label', 'type', 'status', 'progress', 'due', 'priority', 'notes', 'done', 'parent_id', 'sort_order'];
+    const allowed = ['label', 'type', 'status', 'progress', 'due', 'priority', 'notes', 'done', 'parent_id', 'sort_order', 'color'];
     const fields = Object.keys(req.body).filter(k => allowed.includes(k));
     if (fields.length > 0) {
       const sets = fields.map(f => `${f} = ?`).join(', ');

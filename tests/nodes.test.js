@@ -124,3 +124,36 @@ describe('Node tags', () => {
     expect(tree.body.tags).toContain('Teaching');
   });
 });
+
+describe('PATCH /api/nodes/:id color', () => {
+  test('PATCH color persists in tree', async () => {
+    const created = await agent.post('/api/nodes').send({ label: 'Coloured', type: 'project', parent_id: 'root', status: 'active' });
+    const id = created.body.id;
+    await agent.patch(`/api/nodes/${id}`).send({ color: '#8b5cf6' });
+    const tree = await agent.get('/api/tree');
+    const node = tree.body.tree.children.find(c => c.id === id);
+    expect(node.color).toBe('#8b5cf6');
+  });
+
+  test('PATCH color null clears colour', async () => {
+    const created = await agent.post('/api/nodes').send({ label: 'Coloured', type: 'project', parent_id: 'root', status: 'active' });
+    const id = created.body.id;
+    await agent.patch(`/api/nodes/${id}`).send({ color: '#8b5cf6' });
+    await agent.patch(`/api/nodes/${id}`).send({ color: null });
+    const tree = await agent.get('/api/tree');
+    const node = tree.body.tree.children.find(c => c.id === id);
+    expect(node.color).toBeNull();
+  });
+});
+
+describe('PATCH sort_order', () => {
+  test('reorders siblings in tree', async () => {
+    const n1 = await agent.post('/api/nodes').send({ label: 'First', type: 'project', parent_id: 'root', status: 'active' });
+    const n2 = await agent.post('/api/nodes').send({ label: 'Second', type: 'project', parent_id: 'root', status: 'active' });
+    await agent.patch(`/api/nodes/${n1.body.id}`).send({ sort_order: 1 });
+    await agent.patch(`/api/nodes/${n2.body.id}`).send({ sort_order: 0 });
+    const tree = await agent.get('/api/tree');
+    expect(tree.body.tree.children[0].label).toBe('Second');
+    expect(tree.body.tree.children[1].label).toBe('First');
+  });
+});
