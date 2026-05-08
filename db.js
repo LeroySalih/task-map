@@ -26,7 +26,8 @@ function initDb(dbPath = path.join(__dirname, 'data', 'taskmap.db')) {
       notes TEXT,
       done INTEGER DEFAULT 0,
       parent_id TEXT REFERENCES nodes(id) ON DELETE CASCADE,
-      sort_order INTEGER DEFAULT 0
+      sort_order INTEGER DEFAULT 0,
+      color TEXT
     );
 
     CREATE TABLE IF NOT EXISTS tags (
