@@ -12,6 +12,17 @@
     idea: 'Idea'
   };
 
+  const NODE_COLORS = [
+    { label: 'Terracotta', value: '#c96342' },
+    { label: 'Amber',      value: '#d4a84b' },
+    { label: 'Sage',       value: '#5a8a5a' },
+    { label: 'Steel',      value: '#7a9eb8' },
+    { label: 'Violet',     value: '#8b5cf6' },
+    { label: 'Rose',       value: '#e07b8a' },
+    { label: 'Teal',       value: '#3a9e8a' },
+    { label: 'Slate',      value: '#6b7280' },
+  ];
+
   let data = null;
   let links = [];
   let allTags = [];
@@ -61,10 +72,21 @@
   const toast = document.getElementById('toast');
   const breadcrumbs = document.getElementById('breadcrumbs');
 
+  function resolveColor(n) {
+    let cur = n;
+    while (cur) {
+      if (cur.color) return cur.color;
+      const parent = findParent(cur.id);
+      if (!parent || parent.id === 'root') break;
+      cur = parent;
+    }
+    return STATUS_COLORS[n.status] || '#888';
+  }
+
   function nodeColor(n) {
     if (!n) return '#888';
     if (n.type === 'root' || n.id === state.viewRoot) return '#2a2a28';
-    return STATUS_COLORS[n.status] || '#888';
+    return resolveColor(n);
   }
   function nodeSize(n) {
     if (n.type === 'root' || n.id === state.viewRoot) return { w: 200, h: 56 };
@@ -726,6 +748,22 @@
     const isViewRoot = node.id === state.viewRoot;
     const canOpenAsMindmap = !isViewRoot && node.children && node.children.length > 0 && node.type !== 'root';
 
+    let colourHTML = '';
+    if (node.type !== 'root') {
+      const swatches = NODE_COLORS.map(c =>
+        `<button class="color-swatch${node.color === c.value ? ' active' : ''}" style="background:${c.value}" data-color="${c.value}" title="${c.label}"></button>`
+      ).join('');
+      colourHTML = `
+        <div class="sidebar-section">
+          <div class="sidebar-label">Node colour</div>
+          <div class="color-swatches">
+            <button class="color-swatch color-swatch-clear${!node.color ? ' active' : ''}" data-color="" title="Clear (use status colour)">×</button>
+            ${swatches}
+          </div>
+        </div>
+      `;
+    }
+
     let metaHTML = '';
     if (node.type === 'project') {
       metaHTML = `
@@ -924,6 +962,7 @@
         <div class="sidebar-label">Status</div>
         <span class="status-pill" style="background:${color}22;color:${color}">${STATUS_LABELS[node.status] || '—'}</span>
       </div>
+      ${colourHTML}
       ${metaHTML}
       ${tagsHTML}
       ${pathsHTML}
@@ -937,6 +976,7 @@
     sidebar.classList.add('open');
 
     setupTagPicker(node);
+    setupColorPicker(node);
     setupPathHandlers(node);
 
     sidebarContent.querySelectorAll('[data-untag]').forEach(el => {
@@ -1208,6 +1248,18 @@
     document.addEventListener('click', (e) => {
       if (!panel.contains(e.target) && e.target !== btn) panel.classList.remove('visible');
     }, { once: true });
+  }
+
+  function setupColorPicker(node) {
+    sidebarContent.querySelectorAll('.color-swatch').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const color = btn.dataset.color || null;
+        node.color = color;
+        api('PATCH', `/api/nodes/${node.id}`, { color });
+        openSidebar(node);
+        render();
+      });
+    });
   }
 
   function addTagToNode(node, tag) {

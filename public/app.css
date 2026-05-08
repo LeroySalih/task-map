@@ -832,3 +832,30 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+
+  .color-swatches {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .color-swatch {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.1s;
+    padding: 0;
+  }
+  .color-swatch:hover { transform: scale(1.2); }
+  .color-swatch.active { border-color: #2a2a28; box-shadow: 0 0 0 1px white inset; }
+  .color-swatch-clear {
+    background: #f0ede5;
+    color: #8a8a85;
+    font-size: 15px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
