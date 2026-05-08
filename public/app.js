@@ -44,7 +44,10 @@
     viewStack: ['root'],
     viewState: { root: { pan: { x: 0, y: 0 }, zoom: 1, expanded: new Set(['root', 'p1']) } },
     // Which path-row is being edited inline. shape: { nodeId, idx } or { nodeId, idx: -1 } for new
-    editingPath: null
+    editingPath: null,
+    nodeDrag: null,
+    nodeDragActive: false,
+    nodeDragTarget: null
   };
 
   async function api(method, path, body) {
@@ -438,8 +441,18 @@
       g.addEventListener('click', (e) => {
         if (e.target.closest('.node-action')) return;
         e.stopPropagation();
-        if (state.didDrag) return;
+        if (state.didDrag || state.nodeDragActive) return;
         handleNodeClick(g.dataset.id);
+      });
+
+      g.addEventListener('dblclick', (e) => {
+        if (e.target.closest('.node-action')) return;
+        e.stopPropagation();
+        const id = g.dataset.id;
+        const node = findNode(id);
+        if (!node || !node.children || node.children.length === 0) return;
+        toggleExpand(id);
+        render();
       });
     });
 
