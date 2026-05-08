@@ -417,7 +417,22 @@
                   <circle cx="${tx}" cy="${ty}" r="5" fill="#c96342"/>`;
     }
 
-    svg.innerHTML = edgesHTML + nodesHTML + dragLine;
+    let dragIndicator = '';
+    if (state.nodeDragActive && state.nodeDragTarget) {
+      const pos = screenPos.get(state.nodeDragTarget.nodeId);
+      if (pos) {
+        const targetNode = findNode(state.nodeDragTarget.nodeId);
+        const sz = targetNode ? nodeSize(targetNode) : { w: 200, h: 56 };
+        const h = sz.h * state.zoom;
+        const indicatorY = state.nodeDragTarget.position === 'before'
+          ? pos.y - h / 2 - 3
+          : pos.y + h / 2 + 3;
+        const x1 = pos.x - (sz.w * state.zoom) / 2;
+        const x2 = pos.x + (sz.w * state.zoom) / 2;
+        dragIndicator = `<line x1="${x1}" y1="${indicatorY}" x2="${x2}" y2="${indicatorY}" stroke="#c96342" stroke-width="2.5" stroke-linecap="round"/>`;
+      }
+    }
+    svg.innerHTML = edgesHTML + nodesHTML + dragLine + dragIndicator;
     zoomLevel.textContent = Math.round(state.zoom * 100) + '%';
 
     svg.querySelectorAll('.node-action').forEach(g => {
@@ -453,6 +468,15 @@
         if (!node || !node.children || node.children.length === 0) return;
         toggleExpand(id);
         render();
+      });
+
+      g.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.node-action')) return;
+        e.stopPropagation();
+        const id = g.dataset.id;
+        const parent = findParent(id);
+        if (!parent) return;
+        state.nodeDrag = { nodeId: id, parentId: parent.id, startX: e.clientX, startY: e.clientY };
       });
     });
 
@@ -598,6 +622,47 @@
     sidebar.classList.remove('drop-target');
     if (overSidebar && targetId && sourceId && targetId !== sourceId) addLink(sourceId, targetId);
     render();
+  }
+
+  function updateNodeDragTarget(clientX, clientY) {
+    const { parentId, nodeId } = state.nodeDrag;
+    const parent = findNode(parentId);
+    if (!parent || !parent.children) { state.nodeDragTarget = null; return; }
+    const siblings = parent.children.filter(c => c.id !== nodeId);
+    if (siblings.length === 0) { state.nodeDragTarget = null; return; }
+    let closest = null, closestDist = Infinity;
+    for (const sib of siblings) {
+      const pos = screenPos.get(sib.id);
+      if (!pos) continue;
+      const dist = Math.abs(pos.y - clientY);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = { nodeId: sib.id, position: clientY < pos.y ? 'before' : 'after' };
+      }
+    }
+    state.nodeDragTarget = closest;
+  }
+
+  function performReorder() {
+    const { nodeId, parentId } = state.nodeDrag;
+    const { nodeId: targetId, position } = state.nodeDragTarget;
+    const parent = findNode(parentId);
+    if (!parent || !parent.children) return;
+    const draggedNode = parent.children.find(c => c.id === nodeId);
+    if (!draggedNode) return;
+    parent.children = parent.children.filter(c => c.id !== nodeId);
+    const targetIdx = parent.children.findIndex(c => c.id === targetId);
+    if (targetIdx === -1) {
+      parent.children.push(draggedNode);
+    } else if (position === 'before') {
+      parent.children.splice(targetIdx, 0, draggedNode);
+    } else {
+      parent.children.splice(targetIdx + 1, 0, draggedNode);
+    }
+    parent.children.forEach((c, idx) => {
+      c.sort_order = idx;
+      api('PATCH', `/api/nodes/${c.id}`, { sort_order: idx });
+    });
   }
 
   function addLink(fromId, toId) {
@@ -1518,6 +1583,18 @@
 
   window.addEventListener('mousemove', (e) => {
     if (state.linking) { updateLinkDrag(e.clientX, e.clientY); return; }
+    if (state.nodeDrag) {
+      const dx = e.clientX - state.nodeDrag.startX;
+      const dy = e.clientY - state.nodeDrag.startY;
+      if (!state.nodeDragActive && Math.sqrt(dx * dx + dy * dy) > 8) {
+        state.nodeDragActive = true;
+      }
+      if (state.nodeDragActive) {
+        updateNodeDragTarget(e.clientX, e.clientY);
+        render();
+      }
+      return;
+    }
     if (!state.dragging) return;
     const nx = e.clientX - state.dragStart.x;
     const ny = e.clientY - state.dragStart.y;
@@ -1529,6 +1606,14 @@
 
   window.addEventListener('mouseup', (e) => {
     if (state.linking) { endLinkDrag(e.clientX, e.clientY); return; }
+    if (state.nodeDrag) {
+      if (state.nodeDragActive && state.nodeDragTarget) performReorder();
+      state.nodeDrag = null;
+      state.nodeDragActive = false;
+      state.nodeDragTarget = null;
+      render();
+      return;
+    }
     state.dragging = false;
     canvasWrap.classList.remove('dragging');
     setTimeout(() => { state.didDrag = false; }, 50);
